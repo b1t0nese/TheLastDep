@@ -1,0 +1,46 @@
+services:
+
+  # ──────────────────────────────────────────────────
+  # Backend: Flask REST API + SQLite
+  # ──────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: thelastdep-backend
+    restart: unless-stopped
+    volumes:
+      - db_data:/data
+    ports:
+      - "7777:7777"
+    networks:
+      - casino_net
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:7777/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ──────────────────────────────────────────────────
+  # Telegram Bot
+  # ──────────────────────────────────────────────────
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: thelastdep-bot
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - casino_net
+
+networks:
+  casino_net:
+    driver: bridge
+
+volumes:
+  db_data:
