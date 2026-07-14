@@ -70,6 +70,29 @@ def _user_already_bet(user_id: int, game_id: int) -> bool:
     return any(b["user_id"] == user_id for b in bets_data.get("bets", []))
 
 
+def _int_stars(v) -> str:
+    """Convert Decimal/str/int to integer star string without fractions."""
+    return str(int(Decimal(str(v))))
+
+
+def _validate_and_place_bet(message: types.Message, bet_type: str, value: str, amount: Decimal, game_id: int):
+    if amount < MIN_BET:
+        bot.send_message(
+            message.chat.id,
+            f"❌ Минимальная ставка: {_int_stars(MIN_BET)} ⭐. Ты указал {_int_stars(amount)} ⭐.",
+            reply_markup=main_keyboard(),
+        )
+        return
+    if amount > MAX_BET:
+        bot.send_message(
+            message.chat.id,
+            f"❌ Максимальная ставка: {_int_stars(MAX_BET)} ⭐. Ты указал {_int_stars(amount)} ⭐.",
+            reply_markup=main_keyboard(),
+        )
+        return
+    _do_place_bet_raw(message, bet_type, value, amount, game_id)
+
+
 def _do_place_bet(message: types.Message, bet_type: str, value: str, amount_str: str):
     try:
         amount = Decimal(amount_str)
@@ -91,7 +114,7 @@ def _do_place_bet(message: types.Message, bet_type: str, value: str, amount_str:
         )
         return
 
-    _do_place_bet_raw(message, bet_type, value, amount, game["id"])
+    _validate_and_place_bet(message, bet_type, value, amount, game["id"])
 
 
 def _do_place_bet_raw(message: types.Message, bet_type: str, value: str, amount: Decimal, game_id: int):
@@ -112,8 +135,8 @@ def _do_place_bet_raw(message: types.Message, bet_type: str, value: str, amount:
             f"✅ <b>Ставка принята!</b>\n\n"
             f"🎯 Тип: <b>{bet_type}</b>\n"
             f"🔢 Значение: <b>{value}</b>\n"
-            f"⭐ Сумма: <b>{amount} ⭐</b>\n\n"
-            f"Баланс: <b>{data['new_balance']} ⭐</b>\n\n"
+            f"⭐ Сумма: <b>{_int_stars(amount)} ⭐</b>\n\n"
+            f"Баланс: <b>{_int_stars(data['new_balance'])} ⭐</b>\n\n"
             f"Удачи! 🍀",
             reply_markup=main_keyboard(),
         )
@@ -231,7 +254,7 @@ def cmd_start(message: types.Message):
         bot.send_message(
             message.chat.id,
             f"🎰 <b>С возвращением, {message.from_user.first_name}!</b>\n\n"
-            f"Твой баланс: <b>{bal} ⭐</b>",
+            f"Твой баланс: <b>{_int_stars(bal) if bal != '?' else '?'} ⭐</b>",
             reply_markup=main_keyboard(),
         )
 
@@ -261,7 +284,7 @@ def cb_disclaimer(call: types.CallbackQuery):
             f"• Чётное / Нечётное — 1✕\n"
             f"• Дюжина — 2✕\n"
             f"• 1–18 / 19–36 — 1✕\n\n"
-            f"Мин. ставка: <b>{MIN_BET} ⭐</b> | Макс.: <b>{MAX_BET} ⭐</b>",
+            f"Мин. ставка: <b>{_int_stars(MIN_BET)} ⭐</b> | Макс.: <b>{_int_stars(MAX_BET)} ⭐</b>",
             reply_markup=main_keyboard(),
         )
     else:
@@ -293,7 +316,7 @@ def cmd_balance(message: types.Message):
     if status == 200:
         bot.send_message(
             message.chat.id,
-            f"⭐ Твой баланс: <b>{data['balance']} ⭐</b>",
+            f"⭐ Твой баланс: <b>{_int_stars(data['balance'])} ⭐</b>",
             reply_markup=main_keyboard(),
         )
     else:
@@ -393,7 +416,7 @@ def cb_bet_type(call: types.CallbackQuery):
         bet_state[user_id] = state
         bot.edit_message_text(
             f"💰 Тип: <b>{bet_type}</b>, значение: <b>{value}</b>\n\n"
-            f"Введи сумму ставки ({MIN_BET}–{MAX_BET} ⭐):",
+            f"Введи сумму ставки ({_int_stars(MIN_BET)}–{_int_stars(MAX_BET)} ⭐):",
             call.message.chat.id,
             call.message.message_id,
             reply_markup=cancel_keyboard(),
@@ -418,7 +441,7 @@ def cb_bet_number(call: types.CallbackQuery):
 
     bot.edit_message_text(
         f"💰 Ставка на номер <b>{number}</b>\n\n"
-        f"Введи сумму ставки ({MIN_BET}–{MAX_BET} ⭐):",
+        f"Введи сумму ставки ({_int_stars(MIN_BET)}–{_int_stars(MAX_BET)} ⭐):",
         call.message.chat.id,
         call.message.message_id,
         reply_markup=cancel_keyboard(),
@@ -464,7 +487,7 @@ def handle_bet_amount(message: types.Message):
         )
         return
 
-    _do_place_bet_raw(message, state["bet_type"], state["value"], amount, game_id)
+    _validate_and_place_bet(message, state["bet_type"], state["value"], amount, game_id)
 
 
 @bot.message_handler(commands=["history"])
@@ -486,9 +509,9 @@ def cmd_history(message: types.Message):
     lines = ["📋 <b>Последние игры:</b>\n"]
     for h in history:
         ce    = {"red": "🔴", "black": "⚫", "green": "🟢"}.get(h["result_color"], "")
-        net   = Decimal(h["net"])
-        ns    = f"+{net}" if net >= 0 else str(net)
-        emoji = "💰" if net > 0 else ("💸" if net < 0 else "➖")
+        net_val = int(Decimal(h["net"]))
+        ns    = f"+{net_val}" if net_val >= 0 else str(net_val)
+        emoji = "💰" if net_val > 0 else ("💸" if net_val < 0 else "➖")
         lines.append(
             f"• Игра #{h['game_id']}: {ce} <b>{h['result_number']}</b> | "
             f"{h['bet_type']} {h['bet_value']} | "
@@ -517,7 +540,7 @@ def cmd_help(message: types.Message):
         "• <code>parity even|odd</code> — Чёт/нечет (1✕)\n"
         "• <code>dozen 1|2|3</code> — Дюжина (2✕)\n"
         "• <code>half 1|2</code> — Половина (1✕)\n\n"
-        f"⭐ Ставки: от {MIN_BET} до {MAX_BET}\n"
+        f"⭐ Ставки: от {_int_stars(MIN_BET)} до {_int_stars(MAX_BET)}\n"
         "🎯 Ставки принимаются только пока идёт приём (статус «ожидание»)",
         reply_markup=main_keyboard(),
     )
@@ -541,27 +564,31 @@ def notifications_loop():
     while True:
         try:
             time.sleep(3)
+
+            # Check current active game (waiting/spinning)
             data, status = api("get", "/api/games/current")
-            if status != 200:
-                continue
-            current = data.get("game")
+            if status == 200:
+                current = data.get("game")
+                if current:
+                    game_id = current["id"]
+                    status_ = current["status"]
 
-            if not current:
-                continue
+                    if status_ == "waiting" and game_id != _last_notified_start:
+                        _last_notified_start = game_id
+                        _broadcast(
+                            f"🎰 <b>Новый раунд #{game_id} начался!</b>\n\n"
+                            f"⏳ Принимаются ставки.\n"
+                            f"Сделай ставку через кнопку «🎲 Сделать ставку» или командой /bet")
 
-            game_id = current["id"]
-            status_ = current["status"]
-
-            if status_ == "waiting" and game_id != _last_notified_start:
-                _last_notified_start = game_id
-                _broadcast(
-                    f"🎰 <b>Новый раунд #{game_id} начался!</b>\n\n"
-                    f"⏳ Принимаются ставки.\n"
-                    f"Сделай ставку через кнопку «🎲 Сделать ставку» или командой /bet")
-
-            if status_ == "finished" and game_id != _last_notified_game:
-                _last_notified_game = game_id
-                _notify_game_result(game_id)
+            # Check last finished game (games/current doesn't return finished games)
+            data_f, status_f = api("get", "/api/games/last-finished")
+            if status_f == 200:
+                finished = data_f.get("game")
+                if finished and finished["id"] != _last_notified_game:
+                    _last_notified_game = finished["id"]
+                    # Delay notification so wheel animation in client finishes first
+                    time.sleep(8)
+                    _notify_game_result(finished["id"])
 
         except Exception as e:
             logger.error("Notification loop error: %s", e)
@@ -590,24 +617,24 @@ def _notify_game_result(game_id: int):
             f"Результат: {ce} <b>{result_num}</b>\n",
         ]
         total_win = Decimal("0")
-        total_bet = Decimal("0")
         for bet in bets:
             bet_amt = Decimal(bet["amount"])
             win_amt = Decimal(bet["win_amount"])
-            total_bet += bet_amt
             total_win += win_amt
-            if win_amt > 0:
-                lines.append(f"✅ {bet['bet_type']} {bet['value']}: <b>+{win_amt} ⭐</b>")
+            win_int = int(win_amt)
+            bet_int = int(bet_amt)
+            if win_int > 0:
+                lines.append(f"✅ {bet['bet_type']} {bet['value']}: <b>+{win_int} ⭐</b>")
             else:
-                lines.append(f"❌ {bet['bet_type']} {bet['value']}: <b>-{bet_amt} ⭐</b>")
+                lines.append(f"❌ {bet['bet_type']} {bet['value']}: <b>-{bet_int} ⭐</b>")
 
-        net    = total_win - total_bet
+        net = int(total_win)
         net_str = f"+{net}" if net >= 0 else str(net)
         lines.append(f"\n💰 Итог: <b>{net_str} ⭐</b>")
 
         bal_data, _ = api("get", f"/api/users/{user_id}/balance")
         if "balance" in bal_data:
-            lines.append(f"💳 Баланс: <b>{bal_data['balance']} ⭐</b>")
+            lines.append(f"💳 Баланс: <b>{_int_stars(bal_data['balance'])} ⭐</b>")
 
         try:
             bot.send_message(user_id, "\n".join(lines))

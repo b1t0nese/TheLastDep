@@ -1,7 +1,3 @@
-"""
-TheLastDep Casino — Lead Client (PyQt6)
-Roulette wheel animation, bet display, round management.
-"""
 import math
 import sys
 import os
@@ -61,9 +57,9 @@ class RouletteWheel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(460, 460)
-        self._rotation = 0.0          # current visual rotation in degrees
-        self._start_rotation = 0.0    # rotation at start of spin
-        self._target_rotation = 0.0   # rotation at end of spin
+        self._rotation = 0.0
+        self._start_rotation = 0.0
+        self._target_rotation = 0.0
         self._result_number: Optional[int] = None
         self._spinning = False
         self._anim_timer = QTimer(self)
@@ -75,25 +71,15 @@ class RouletteWheel(QWidget):
         self._result_number = result_number
         self._spinning = True
 
-        # The marker is fixed at the top (12 o'clock).
-        # In paintEvent we do painter.rotate(self._rotation), so pocket i
-        # lands at top when its center angle equals -self._rotation (mod 360).
-        # Pocket i center (before rotation) = i * POCKET_ANGLE degrees from 12 o'clock
-        # (because we draw pocket i starting at i*POCKET_ANGLE - POCKET_ANGLE/2,
-        #  so center = i*POCKET_ANGLE, measured clockwise from top in Qt coords).
-        # We want: i*POCKET_ANGLE + self._rotation ≡ 0 (mod 360)
-        # => self._rotation = -i*POCKET_ANGLE (mod 360)
         idx = WHEEL_ORDER.index(result_number)
         pocket_center = idx * POCKET_ANGLE
         exact_stop = (-pocket_center) % 360
 
-        # Add enough full spins so the wheel always spins forward many times
         full_spins = 8
         current_norm = self._rotation % 360
-        # How much more to rotate forward to reach exact_stop
         delta = (exact_stop - current_norm) % 360
         if delta < 1.0:
-            delta += 360  # ensure at least one full spin past current position
+            delta += 360
 
         self._start_rotation = self._rotation
         self._target_rotation = self._rotation + full_spins * 360 + delta
@@ -105,17 +91,12 @@ class RouletteWheel(QWidget):
     def _tick(self):
         self._current_ticks += 1
         t = min(self._current_ticks / self._total_ticks, 1.0)
-
-        # Ease-out quintic: starts fast, decelerates to stop
         ease = 1.0 - (1.0 - t) ** 5
-
         self._rotation = self._start_rotation + ease * (self._target_rotation - self._start_rotation)
         self.update()
-
         if self._current_ticks >= self._total_ticks:
             self._anim_timer.stop()
             self._spinning = False
-            # Snap exactly to the target so marker aligns perfectly
             self._rotation = self._target_rotation
             self.update()
             self.spin_finished.emit(self._result_number or 0)
@@ -131,12 +112,9 @@ class RouletteWheel(QWidget):
         painter.translate(cx, cy)
         painter.rotate(self._rotation % 360)
 
-        # Draw pockets
         for i, num in enumerate(WHEEL_ORDER):
-            # Pocket i center is at i * POCKET_ANGLE clockwise from top (before rotation)
-            # drawPie uses counter-clockwise degrees * 16 from 3 o'clock
-            center_deg = i * POCKET_ANGLE          # clockwise from top
-            qt_center  = 90.0 - center_deg         # convert to Qt angle (CCW from 3 o'clock)
+            center_deg = i * POCKET_ANGLE
+            qt_center  = 90.0 - center_deg
             start_qt   = qt_center + POCKET_ANGLE / 2
             span_qt    = -POCKET_ANGLE
 
@@ -149,15 +127,13 @@ class RouletteWheel(QWidget):
                 int(span_qt * 16),
             )
 
-            # Number label — placed at pocket center
             angle_rad = math.radians(qt_center)
             tx = (r * 0.78) * math.cos(angle_rad)
             ty = -(r * 0.78) * math.sin(angle_rad)
             painter.save()
             painter.translate(tx, ty)
-            # Counter-rotate so text stays readable (not spinning with wheel)
             painter.rotate(-(self._rotation % 360) + center_deg)
-            font = QFont("Arial", max(7, int(r / 28)), QFont.Weight.Bold)
+            font = QFont("Arial", max(8, int(r / 20)), QFont.Weight.Bold)
             painter.setFont(font)
             painter.setPen(QPen(QColor("#ffffff")))
             fm = painter.fontMetrics()
@@ -167,14 +143,12 @@ class RouletteWheel(QWidget):
             painter.drawText(int(-w / 2), int(h / 4), text)
             painter.restore()
 
-        # Outer gold ring
         painter.resetTransform()
         painter.translate(cx, cy)
         painter.setPen(QPen(QColor("#c9a84c"), 6))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(QRectF(-r, -r, 2 * r, 2 * r))
 
-        # Inner hub
         hub_r = r * 0.12
         grad = QRadialGradient(QPointF(0, 0), hub_r)
         grad.setColorAt(0, QColor("#c9a84c"))
@@ -183,7 +157,6 @@ class RouletteWheel(QWidget):
         painter.setPen(QPen(QColor("#c9a84c"), 2))
         painter.drawEllipse(QRectF(-hub_r, -hub_r, 2 * hub_r, 2 * hub_r))
 
-        # Fixed marker triangle at top (12 o'clock) — points downward into wheel
         painter.resetTransform()
         painter.translate(cx, cy)
         marker_tip_y = -(r - 4)
@@ -227,13 +200,11 @@ class BetItem(QFrame):
         win      = Decimal(bet.get("win_amount", "0"))
 
         name_label = QLabel(f"<b>{username}</b>")
-        name_label.setStyleSheet("color: #e8d5a3; font-size: 13px;")
-
+        name_label.setStyleSheet("color: #e8d5a3; font-size: 26px;")
         type_label = QLabel(f"{bet_type} <i>{value}</i>")
-        type_label.setStyleSheet("color: #aaaacc; font-size: 12px;")
-
+        type_label.setStyleSheet("color: #aaaacc; font-size: 24px;")
         amount_label = QLabel(f"💰 {amount}")
-        amount_label.setStyleSheet("color: #c9a84c; font-size: 13px; font-weight: bold;")
+        amount_label.setStyleSheet("color: #c9a84c; font-size: 26px; font-weight: bold;")
 
         layout.addWidget(name_label)
         layout.addWidget(type_label)
@@ -242,11 +213,11 @@ class BetItem(QFrame):
 
         if highlight and win > 0:
             win_label = QLabel(f"✅ +{win}")
-            win_label.setStyleSheet("color: #00ff88; font-size: 13px; font-weight: bold;")
+            win_label.setStyleSheet("color: #00ff88; font-size: 26px; font-weight: bold;")
             layout.addWidget(win_label)
         elif loser:
             lose_label = QLabel(f"❌ -{amount}")
-            lose_label.setStyleSheet("color: #ff4444; font-size: 13px; font-weight: bold;")
+            lose_label.setStyleSheet("color: #ff4444; font-size: 26px; font-weight: bold;")
             layout.addWidget(lose_label)
 
 
@@ -366,12 +337,23 @@ class MainWindow(QMainWindow):
         scroll.setWidget(self.bets_container)
         right.addWidget(scroll, 1)
 
+        # Top balances
+        top_title = QLabel("🏆 Топ балансов")
+        top_title.setObjectName("sectionTitle")
+        right.addWidget(top_title)
+
+        self.top_container = QWidget()
+        self.top_layout = QVBoxLayout(self.top_container)
+        self.top_layout.setSpacing(2)
+        self.top_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        right.addWidget(self.top_container)
+
         # Connection info
         self.conn_label = QLabel(f"🌐 {BACKEND_URL}")
         self.conn_label.setObjectName("connLabel")
         right.addWidget(self.conn_label)
 
-        root.addLayout(right, 2)
+        root.addLayout(right, 3)
 
         # Status bar
         self.setStatusBar(QStatusBar())
@@ -448,14 +430,14 @@ class MainWindow(QMainWindow):
             }
             QPushButton#btnGray:hover { background: #3a3a6a; }
             QLabel#sectionTitle {
-                font-size: 18px;
+                font-size: 32px;
                 font-weight: bold;
                 color: #c9a84c;
-                border-bottom: 1px solid #c9a84c;
-                padding-bottom: 4px;
+                border-bottom: 2px solid #c9a84c;
+                padding-bottom: 6px;
             }
             QLabel#statsLabel {
-                font-size: 13px;
+                font-size: 26px;
                 color: #aaaacc;
             }
             QScrollArea#betsScroll {
@@ -479,6 +461,7 @@ class MainWindow(QMainWindow):
         if self._spinning:
             return
         try:
+            self._update_top_balances_ui()
             data = api("get", "/api/games/current")
             game = data.get("game")
             self._game = game
@@ -510,18 +493,47 @@ class MainWindow(QMainWindow):
             self.status_label.setStyleSheet("color: #fff; background: #3a3a00; border: 2px solid #c9a84c; border-radius: 10px; padding: 8px; font-size: 18px; font-weight: bold;")
             self.btn_spin.setEnabled(True)
             self.btn_new_round.setEnabled(False)
-
         elif status == "spinning":
             self.status_label.setText(f"🔴 Раунд #{gid} — Вращение!")
             self.status_label.setStyleSheet("color: #fff; background: #3a0000; border: 2px solid #c0392b; border-radius: 10px; padding: 8px; font-size: 18px; font-weight: bold;")
             self.btn_spin.setEnabled(False)
             self.btn_new_round.setEnabled(False)
-
         elif status == "finished":
             self.status_label.setText(f"✅ Раунд #{gid} — Завершён")
             self.status_label.setStyleSheet("color: #fff; background: #003a00; border: 2px solid #00a550; border-radius: 10px; padding: 8px; font-size: 18px; font-weight: bold;")
             self.btn_spin.setEnabled(False)
             self.btn_new_round.setEnabled(True)
+
+    def _update_top_balances_ui(self):
+        try:
+            data = api("get", "/api/users/top-balances")
+            users = data.get("users", [])
+        except Exception:
+            return
+
+        while self.top_layout.count():
+            item = self.top_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        medals = ["🥇", "🥈", "🥉"]
+        for i, u in enumerate(users):
+            medal = medals[i] if i < 3 else f"{i+1}."
+            frame = QFrame()
+            frame.setStyleSheet("background: #1e1e2e; border: 1px solid #3a3a5e; border-radius: 4px; padding: 2px;")
+            row = QHBoxLayout(frame)
+            row.setContentsMargins(6, 2, 6, 2)
+            pos = QLabel(medal)
+            pos.setStyleSheet("color: #c9a84c; font-size: 24px; font-weight: bold;")
+            name = QLabel(f"<b>{u.get('username', '?')}</b>")
+            name.setStyleSheet("color: #e8d5a3; font-size: 24px;")
+            bal = QLabel(f"⭐ {u.get('balance', '0')}")
+            bal.setStyleSheet("color: #c9a84c; font-size: 24px; font-weight: bold;")
+            row.addWidget(pos)
+            row.addWidget(name)
+            row.addStretch()
+            row.addWidget(bal)
+            self.top_layout.addWidget(frame)
 
     def _update_bets_ui(self, winning_bet_ids: Optional[set] = None, losing_bet_ids: Optional[set] = None):
         while self.bets_layout.count():
@@ -542,7 +554,7 @@ class MainWindow(QMainWindow):
 
         if not self._bets:
             empty = QLabel("Ставок пока нет...")
-            empty.setStyleSheet("color: #555577; font-size: 14px; padding: 20px;")
+            empty.setStyleSheet("color: #555577; font-size: 24px; padding: 20px;")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.bets_layout.addWidget(empty)
 
@@ -579,7 +591,6 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"✅ Создан раунд #{self._game['id']}")
         except requests.HTTPError as e:
             if e.response is not None and e.response.status_code == 409:
-                # Already active game — just refresh
                 self._poll_backend()
             else:
                 QMessageBox.warning(self, "Ошибка", f"Не удалось создать раунд:\n{e}")
@@ -599,16 +610,12 @@ class MainWindow(QMainWindow):
             data = api("post", f"/api/games/{game_id}/spin")
             result_num = data["result_number"]
 
-            # Get final bets for display
             bets_data = api("get", f"/api/games/{game_id}/bets")
             self._bets = bets_data.get("bets", [])
             self._update_bets_ui()
-
-            # Update game state
             self._game = data["game"]
 
-            # Start wheel animation
-            self.status_label.setText(f"🔴 Вращение...")
+            self.status_label.setText("🔴 Вращение...")
             self.wheel.start_spin(result_num, duration_ms=6500)
 
         except Exception as e:

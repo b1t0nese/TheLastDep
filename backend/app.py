@@ -7,7 +7,7 @@ from flask import Flask, jsonify, request
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from game_logic import MIN_BET, MAX_BET, calculate_win, get_color, spin_wheel
+from game_logic import calculate_win, get_color, spin_wheel
 from models import Bet, Game, GameStatus, Transaction, TransactionType, User, db
 
 logging.basicConfig(
@@ -27,6 +27,8 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 WELCOME_BONUS = os.getenv("WELCOME_BONUS", "0.00")
+MIN_BET = Decimal(os.getenv("MIN_BET", "1"))
+MAX_BET = Decimal(os.getenv("MAX_BET", "500"))
 
 db.init_app(app)
 
@@ -110,7 +112,7 @@ def get_user_history(user_id):
                 "bet_value": bet.value,
                 "amount": str(bet.amount),
                 "win_amount": str(bet.win_amount),
-                "net": str(Decimal(str(bet.win_amount)) - Decimal(str(bet.amount))),
+                "net": str(bet.win_amount),
                 "finished_at": bet.game.finished_at.isoformat() if bet.game.finished_at else None,
             }
         )
@@ -180,6 +182,19 @@ def get_current_game():
     game = (
         db.session.execute(
             select(Game).where(Game.status.in_(["waiting", "spinning"])).order_by(Game.id.desc())
+        )
+        .scalars()
+        .first()
+    )
+    if not game:
+        return jsonify({"game": None}), 200
+    return jsonify({"game": game.to_dict()}), 200
+
+@app.route("/api/games/last-finished", methods=["GET"])
+def get_last_finished_game():
+    game = (
+        db.session.execute(
+            select(Game).where(Game.status == GameStatus.finished.value).order_by(Game.id.desc())
         )
         .scalars()
         .first()
@@ -363,6 +378,15 @@ def place_bet():
         db.session.rollback()
         logger.error("DB error in place_bet: %s", e)
         return jsonify({"error": "Database error"}), 500
+
+@app.route("/api/users/top-balances", methods=["GET"])
+def get_top_balances():
+    users = db.session.execute(
+        select(User).order_by(User.balance.desc()).limit(10)
+    ).scalars().all()
+    return jsonify({
+        "users": [{"id": u.id, "username": u.username, "balance": str(int(u.balance))} for u in users]
+    }), 200
 
 @app.route("/api/health", methods=["GET"])
 def health():

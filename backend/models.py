@@ -44,7 +44,7 @@ class User(db.Model):
         return {
             "id": self.id,
             "username": self.username,
-            "balance": str(self.balance),
+            "balance": str(int(self.balance)),
             "created_at": self.created_at.isoformat(),
         }
 
@@ -105,8 +105,8 @@ class Bet(db.Model):
             "game_id": self.game_id,
             "bet_type": self.bet_type,
             "value": self.value,
-            "amount": str(self.amount),
-            "win_amount": str(self.win_amount) if self.win_amount is not None else "0.00",
+            "amount": str(int(self.amount)),
+            "win_amount": str(int(self.win_amount)) if self.win_amount is not None else "0",
         }
 
 
