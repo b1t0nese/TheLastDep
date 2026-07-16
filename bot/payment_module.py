@@ -8,11 +8,6 @@ logger = logging.getLogger(__name__)
 
 class Payments:
     def __init__(self, bot, api_func, secret_key: str):
-        """
-        bot         — telebot.TeleBot instance
-        api_func    — функция api(method, path, **kwargs) из bot.py
-        secret_key  — PAYMENT_SECRET из .env
-        """
         self.bot = bot
         self.api = api_func
         self.secret_key = secret_key

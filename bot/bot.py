@@ -71,7 +71,6 @@ def _user_already_bet(user_id: int, game_id: int) -> bool:
 
 
 def _int_stars(v) -> str:
-    """Convert Decimal/str/int to integer star string without fractions."""
     return str(int(Decimal(str(v))))
 
 
@@ -186,16 +185,16 @@ def deposit_amount_keyboard():
 def bet_type_keyboard():
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton("🔢 Номер (35✕)",       callback_data="btype:number"),
-        types.InlineKeyboardButton("🔴 Красное (1✕)",      callback_data="btype:color:red"),
-        types.InlineKeyboardButton("⚫ Чёрное (1✕)",       callback_data="btype:color:black"),
-        types.InlineKeyboardButton("➕ Чётное (1✕)",       callback_data="btype:parity:even"),
-        types.InlineKeyboardButton("➖ Нечётное (1✕)",     callback_data="btype:parity:odd"),
-        types.InlineKeyboardButton("1️⃣ Дюжина 1–12 (2✕)",  callback_data="btype:dozen:1"),
-        types.InlineKeyboardButton("2️⃣ Дюжина 13–24 (2✕)", callback_data="btype:dozen:2"),
-        types.InlineKeyboardButton("3️⃣ Дюжина 25–36 (2✕)", callback_data="btype:dozen:3"),
-        types.InlineKeyboardButton("📉 1–18 (1✕)",         callback_data="btype:half:1"),
-        types.InlineKeyboardButton("📈 19–36 (1✕)",        callback_data="btype:half:2"),
+        types.InlineKeyboardButton("🔢 Номер (10✕)",       callback_data="btype:number"),
+        types.InlineKeyboardButton("🔴 Красное (2✕)",      callback_data="btype:color:red"),
+        types.InlineKeyboardButton("⚫ Чёрное (2✕)",       callback_data="btype:color:black"),
+        types.InlineKeyboardButton("➕ Чётное (2✕)",       callback_data="btype:parity:even"),
+        types.InlineKeyboardButton("➖ Нечётное (2✕)",     callback_data="btype:parity:odd"),
+        types.InlineKeyboardButton("1️⃣ Дюжина 1–12 (3✕)",  callback_data="btype:dozen:1"),
+        types.InlineKeyboardButton("2️⃣ Дюжина 13–24 (3✕)", callback_data="btype:dozen:2"),
+        types.InlineKeyboardButton("3️⃣ Дюжина 25–36 (3✕)", callback_data="btype:dozen:3"),
+        types.InlineKeyboardButton("📉 1–18 (2✕)",         callback_data="btype:half:1"),
+        types.InlineKeyboardButton("📈 19–36 (2✕)",        callback_data="btype:half:2"),
     )
     return kb
 
@@ -279,11 +278,11 @@ def cb_disclaimer(call: types.CallbackQuery):
             f"Тебе начислен стартовый бонус: <b>10 ⭐</b>\n\n"
             f"<b>Правила — Европейская рулетка:</b>\n"
             f"• Числа 0–36, одно зеро\n"
-            f"• Ставка на номер — выигрыш 35✕\n"
-            f"• Красное / Чёрное — 1✕\n"
-            f"• Чётное / Нечётное — 1✕\n"
-            f"• Дюжина — 2✕\n"
-            f"• 1–18 / 19–36 — 1✕\n\n"
+            f"• Ставка на номер — выигрыш 10✕\n"
+            f"• Красное / Чёрное — 2✕\n"
+            f"• Чётное / Нечётное — 2✕\n"
+            f"• Дюжина — 3✕\n"
+            f"• 1–18 / 19–36 — 2✕\n\n"
             f"Мин. ставка: <b>{_int_stars(MIN_BET)} ⭐</b> | Макс.: <b>{_int_stars(MAX_BET)} ⭐</b>",
             reply_markup=main_keyboard(),
         )
@@ -508,15 +507,14 @@ def cmd_history(message: types.Message):
 
     lines = ["📋 <b>Последние игры:</b>\n"]
     for h in history:
-        ce    = {"red": "🔴", "black": "⚫", "green": "🟢"}.get(h["result_color"], "")
+        ce = {"red": "🔴", "black": "⚫", "green": "🟢"}.get(h["result_color"], "")
         net_val = int(Decimal(h["net"]))
-        ns    = f"+{net_val}" if net_val >= 0 else str(net_val)
+        ns = f"+{net_val}" if net_val >= 0 else str(net_val)
         emoji = "💰" if net_val > 0 else ("💸" if net_val < 0 else "➖")
         lines.append(
             f"• Игра #{h['game_id']}: {ce} <b>{h['result_number']}</b> | "
             f"{h['bet_type']} {h['bet_value']} | "
-            f"{emoji} <b>{ns} ⭐</b>"
-        )
+            f"{emoji} <b>{ns} ⭐</b>")
 
     bot.send_message(message.chat.id, "\n".join(lines), reply_markup=main_keyboard())
 
@@ -535,15 +533,14 @@ def cmd_help(message: types.Message):
         "/history — Последние 10 игр\n"
         "/help — Эта справка\n\n"
         "<b>Типы ставок:</b>\n"
-        "• <code>number 0-36</code> — Ставка на число (35✕)\n"
-        "• <code>color red|black</code> — Цвет (1✕)\n"
-        "• <code>parity even|odd</code> — Чёт/нечет (1✕)\n"
-        "• <code>dozen 1|2|3</code> — Дюжина (2✕)\n"
-        "• <code>half 1|2</code> — Половина (1✕)\n\n"
+        "• <code>number 0-36</code> — Ставка на число (10✕)\n"
+        "• <code>color red|black</code> — Цвет (2✕)\n"
+        "• <code>parity even|odd</code> — Чёт/нечет (2✕)\n"
+        "• <code>dozen 1|2|3</code> — Дюжина (3✕)\n"
+        "• <code>half 1|2</code> — Половина (2✕)\n\n"
         f"⭐ Ставки: от {_int_stars(MIN_BET)} до {_int_stars(MAX_BET)}\n"
         "🎯 Ставки принимаются только пока идёт приём (статус «ожидание»)",
-        reply_markup=main_keyboard(),
-    )
+        reply_markup=main_keyboard())
 
 
 
@@ -565,7 +562,6 @@ def notifications_loop():
         try:
             time.sleep(3)
 
-            # Check current active game (waiting/spinning)
             data, status = api("get", "/api/games/current")
             if status == 200:
                 current = data.get("game")
@@ -580,13 +576,11 @@ def notifications_loop():
                             f"⏳ Принимаются ставки.\n"
                             f"Сделай ставку через кнопку «🎲 Сделать ставку» или командой /bet")
 
-            # Check last finished game (games/current doesn't return finished games)
             data_f, status_f = api("get", "/api/games/last-finished")
             if status_f == 200:
                 finished = data_f.get("game")
                 if finished and finished["id"] != _last_notified_game:
                     _last_notified_game = finished["id"]
-                    # Delay notification so wheel animation in client finishes first
                     time.sleep(8)
                     _notify_game_result(finished["id"])
 
@@ -599,10 +593,10 @@ def _notify_game_result(game_id: int):
     if status != 200:
         return
 
-    result_num   = result_data.get("result_number")
+    result_num = result_data.get("result_number")
     result_color = result_data.get("result_color", "")
-    ce           = {"red": "🔴", "black": "⚫", "green": "🟢"}.get(result_color, "")
-    all_bets     = result_data.get("all_bets", [])
+    ce = {"red": "🔴", "black": "⚫", "green": "🟢"}.get(result_color, "")
+    all_bets = result_data.get("all_bets", [])
 
     user_bets: dict[int, list] = {}
     for bet in all_bets:

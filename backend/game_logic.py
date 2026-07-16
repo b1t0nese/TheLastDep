@@ -27,7 +27,7 @@ def calculate_win(bet_type: str, bet_value: str, result: int, amount: Decimal) -
         except ValueError:
             return Decimal("0")
         if num == result:
-            return amount * 35
+            return amount * 10
         return Decimal("0")
 
     elif bet_type == "color":
@@ -35,7 +35,7 @@ def calculate_win(bet_type: str, bet_value: str, result: int, amount: Decimal) -
         if result == 0:
             return Decimal("0")
         if bet_value.lower() == result_color:
-            return amount * 1
+            return amount * 2
         return Decimal("0")
 
     elif bet_type == "parity":
@@ -44,7 +44,7 @@ def calculate_win(bet_type: str, bet_value: str, result: int, amount: Decimal) -
             return Decimal("0")
         is_even = result % 2 == 0
         if (bet_value.lower() == "even" and is_even) or (bet_value.lower() == "odd" and not is_even):
-            return amount * 1
+            return amount * 2
         return Decimal("0")
 
     elif bet_type == "dozen":
@@ -55,7 +55,7 @@ def calculate_win(bet_type: str, bet_value: str, result: int, amount: Decimal) -
             return Decimal("0")
         ranges = {1: range(1, 13), 2: range(13, 25), 3: range(25, 37)}
         if dozen in ranges and result in ranges[dozen]:
-            return amount * 2
+            return amount * 3
         return Decimal("0")
 
     elif bet_type == "half":
@@ -67,9 +67,9 @@ def calculate_win(bet_type: str, bet_value: str, result: int, amount: Decimal) -
         if result == 0:
             return Decimal("0")
         if half == 1 and 1 <= result <= 18:
-            return amount * 1
+            return amount * 2
         if half == 2 and 19 <= result <= 36:
-            return amount * 1
+            return amount * 2
         return Decimal("0")
 
     elif bet_type == "column":
@@ -84,7 +84,7 @@ def calculate_win(bet_type: str, bet_value: str, result: int, amount: Decimal) -
         if result == 0:
             return Decimal("0")
         if result % 3 == (col % 3):
-            return amount * 2
+            return amount * 3
         return Decimal("0")
 
     return Decimal("0")
